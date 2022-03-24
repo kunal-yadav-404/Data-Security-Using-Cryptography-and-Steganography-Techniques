@@ -64,7 +64,7 @@ class Stego:
 		extracted_len = el_array.view(np.uint32)[0]
 		data = data[self.header_len:extracted_len+self.header_len]
 		self.write_file(file_path, data)
-		print("Stego image Decoded!")
+		print("Starting Image decoding...")
 		return
 
 	def read_image(self, img_path):

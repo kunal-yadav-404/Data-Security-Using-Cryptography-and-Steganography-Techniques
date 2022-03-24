@@ -1,3 +1,2 @@
-Steganography
-Cryptography
-Python3
+Hello, my name is Khan!
+I am a BCE Core student.
