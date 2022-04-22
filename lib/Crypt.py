@@ -1,5 +1,7 @@
 from Crypto import Random
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
+import rsa
 import os
 import hashlib
 
@@ -17,11 +19,34 @@ class Crypt:
         cipher = AES.new(key, AES.MODE_CBC, iv)
         return iv + cipher.encrypt(message)
 
+    def encrypt_rsa(self, message, pubkey='lib/output/public.pem'):
+        f = open(pubkey, 'rb')
+        self.key = RSA.importKey(f.read())
+        messege = rsa.encrypt(message, self.key)
+        return message
+    
+    def decrypt_rsa(self, message, prikey='lib/output/private.pem'):
+    	f = open(prikey, 'rb')
+    	self.key = RSA.importKey(f.read())
+    	messege = self.key.decrypt(message)
+    	return message
+	
     def encrypt_file(self, file_name):
-        self.key = hashlib.shake_128(input(f"Set password for [{file_name}]: ").encode("utf-8")).hexdigest(16)
         with open(file_name, 'rb') as fo:
             plaintext = fo.read()
-        enc = self.encrypt(plaintext, self.key)
+        if len(plaintext) < 245:
+        	keyF = input("Public Key file location for RSA [default - lib/output/public.pem]: ")
+        	if keyF == '':
+        		enc = self.encrypt_rsa(plaintext)
+        	else:
+        		enc = self.encrypt_rsa(plaintext, keyF)
+        else:
+        	print("File too large, RSA not used!")
+        	enc = plaintext
+            
+        self.key = hashlib.shake_128(input(f"Set password for [{file_name}]: ").encode("utf-8")).hexdigest(16)
+        enc = self.encrypt(enc, self.key)
+        
         newF = file_name + ".enc"
         with open(newF, 'wb') as fo:
             fo.write(enc)
@@ -35,16 +60,29 @@ class Crypt:
         return plaintext.rstrip(b"\0")
 
     def decrypt_file(self, file_name):
-        self.key = hashlib.shake_128(input("File password: ").encode("utf-8")).hexdigest(16)
-        with open(file_name, 'rb') as fo:
+    	with open(file_name, 'rb') as fo:
             ciphertext = fo.read()
-        dec = self.decrypt(ciphertext, self.key)
-        op_file = file_name[:-4]
-        with open(op_file, 'wb') as fo:
-            fo.write(dec)
-        os.remove(file_name)
-        print("File fully Decrypted!!!")
-        print(f"Output available at: {op_file}")
+        	
+    	self.key = hashlib.shake_128(input("File password: ").encode("utf-8")).hexdigest(16)
+    	dec = self.decrypt(ciphertext, self.key)
+    	
+    	keyF = input("Private Key file location for RSA [default - lib/output/private.pem]: ")
+    	if keyF == '':
+        	keyF = "lib/output/private.pem"
+    	try:
+    		dec1 = self.decrypt_rsa(dec, keyF)
+    	except ValueError:
+        	print("Not encrypted using RSA, ignored...")
+        	dec1 = dec
+        
+    	op_file = file_name[:-4]
+    	
+    	with open(op_file, 'wb') as fo:
+            #fo.write(dec1[dec1.index(b'\x00')+1:])
+            fo.write(dec1)
+    	os.remove(file_name)
+    	print("File fully Decrypted!!!")
+    	print(f"Output available at: {op_file}")
 
     def getAllFiles(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))

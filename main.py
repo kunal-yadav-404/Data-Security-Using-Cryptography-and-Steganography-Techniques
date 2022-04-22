@@ -8,7 +8,8 @@ def main():
 		inp = int(input("""
 1. Secure File
 2. Decrypt File
-3. Exit
+3. Generate RSA Keys
+4. Exit
 Choice: """))
 		
 		if inp == 1:
@@ -25,15 +26,13 @@ Choice: """))
 		elif inp == 2:
 			stegoImg = input("Stego image: ")
 			fName = input('Output file name [default-lib/output/decrypted.txt]: ')
-			if fName != "":
-				if os.path.isfile(fName):
-					sec.desecure_file(stegoImg, fName)
-				else:
-					print(f"Cover Image [{coverImg}] does not exists...")
-					sec.desecure_file(stegoImg)
-			else:
+			if fName == "":
 				sec.desecure_file(stegoImg)
+			else:
+				sec.desecure_file(stegoImg, fName)
 		elif inp == 3:
+			sec.generate_key()
+		elif inp == 4:
 			exit()
 		else:
 			print("Invalid Input...")
