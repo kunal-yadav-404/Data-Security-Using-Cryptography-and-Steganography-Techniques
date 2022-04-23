@@ -40,9 +40,6 @@ def split2len(s, n):
             s = s[n:]
     return list(_f(s, n))
 
-
-
-
 def caesar_ascii(char,mode,n):
     if mode == "enc" :
         ascii = ord(char)
@@ -59,6 +56,7 @@ def encode_frame(frame_dir,text_to_hide):
     text_to_hide_open = open(text_to_hide, "rb")
     #text_to_hide = repr(text_to_hide_open.read())
     text_to_hide = text_to_hide_open.read()
+    text_to_hide_open.close()
     #print(text_to_hide)
 
 
@@ -113,7 +111,6 @@ def encode_frame(frame_dir,text_to_hide):
                 index += 1
         if encoded:
             encoded.save(str(frame_dir)+"/"+str(chopped_text_index+1) + ".png",compress_level=0)
-    os.remove(text_to_hide)
 
 
 def decode_frame(frame_dir, outputFile="lib/output/decrypted.txt"):
