@@ -1,6 +1,7 @@
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
+from lib.TripleDES import triple_des
 import rsa
 import os
 import hashlib
@@ -12,6 +13,16 @@ class Crypt:
 
     def pad(self, s):
         return s + b"\0" * (AES.block_size - len(s) % AES.block_size)
+        
+    def triplehash(self, passw):
+    	has = hashlib.md5(passw.encode()).hexdigest()
+    	new = ""
+    	for i, j in enumerate(has):
+    		if i % 4 == 0:
+    			continue
+    		else:
+    			new += j
+    	return new
 
     def encrypt(self, message, key, key_size=256):
         message = self.pad(message)
@@ -32,26 +43,34 @@ class Crypt:
     	return message
 	
     def encrypt_file(self, file_name):
-        with open(file_name, 'rb') as fo:
-            plaintext = fo.read()
-        if len(plaintext) < 245:
-        	keyF = input("Public Key file location for RSA [default - lib/output/public.pem]: ")
-        	if keyF == '':
-        		enc = self.encrypt_rsa(plaintext)
-        	else:
-        		enc = self.encrypt_rsa(plaintext, keyF)
-        else:
-        	print("File too large, RSA not used!")
-        	enc = plaintext
-            
-        self.key = hashlib.shake_128(input(f"Set password for [{file_name}]: ").encode("utf-8")).hexdigest(16)
-        enc = self.encrypt(enc, self.key)
+    	try:
+   			with open(file_name, 'rb') as fo:
+   				plaintext = fo.read()
+    	except FileNotFoundError:
+    		return
+    	if len(plaintext) < 245:
+    		keyF = input("Public Key file location for RSA [default - lib/output/public.pem]: ")
+    		if keyF == '':
+    			enc = self.encrypt_rsa(plaintext)
+    		else:
+    			enc = self.encrypt_rsa(plaintext, keyF)
+    	else:
+    		print("File too large, RSA not used!")
+    		enc = plaintext
         
-        newF = file_name + ".enc"
-        with open(newF, 'wb') as fo:
-            fo.write(enc)
-        print("\nFile Encrypted!")
-        return newF
+    	passW = input(f"Set password for [{file_name}]: ")
+    	self.key = hashlib.shake_128(passW.encode("utf-8")).hexdigest(16)
+    	enc = self.encrypt(enc, self.key)
+        
+    	self.key = self.triplehash(passW)
+    	self.triple = triple_des(self.key)
+    	enc = self.triple.encrypt(enc)
+        
+    	newF = file_name + ".enc"
+    	with open(newF, 'wb') as fo:
+    		fo.write(enc)
+    	print("\nFile Encrypted!")
+    	return newF
 
     def decrypt(self, ciphertext, key):
         iv = ciphertext[:AES.block_size]
@@ -62,8 +81,14 @@ class Crypt:
     def decrypt_file(self, file_name):
     	with open(file_name, 'rb') as fo:
             ciphertext = fo.read()
+            
+    	passW = input("File password: ")
         	
-    	self.key = hashlib.shake_128(input("File password: ").encode("utf-8")).hexdigest(16)
+    	self.key = self.triplehash(passW)
+    	self.triple = triple_des(self.key)
+    	ciphertext = self.triple.decrypt(ciphertext)
+        
+    	self.key = hashlib.shake_128(passW.encode("utf-8")).hexdigest(16)
     	dec = self.decrypt(ciphertext, self.key)
     	
     	keyF = input("Private Key file location for RSA [default - lib/output/private.pem]: ")

@@ -2,15 +2,18 @@ import os
 import numpy as np
 from imageio import imread, imwrite
 from multipledispatch import dispatch
+from lib.VideoStego import *
+from subprocess import call, STDOUT
 
 
 class Stego:
 	
-	def __init__(self, cover = "lib/images/cover.png"):
+	def __init__(self, cover = "lib/images/cover.png", coverVideo = "lib/videos/cover.mp4"):
 		self.img_path = cover
+		self.video_path = coverVideo
 		self.output_path = "lib/output/secured.png"
-		self.max_value = 255 # max uint value per pixel per channel
-		self.header_len = 4*8 # uint32 bit length
+		self.max_value = 255
+		self.header_len = 4*8
 	
 	@dispatch(str)
 	def stego(self, file_path):
@@ -27,7 +30,8 @@ class Stego:
 			image, shape_orig = self.read_image(self.img_path)
 			img_len = image.shape[0]
 			if file_len >= img_len - self.header_len:
-				print("File size too large...")
+				print("File size too large, going for video steganography...")
+				self.videoStego()
 				return
 			else:			
 				tmp = file
@@ -106,3 +110,57 @@ class Stego:
 		out_mask = np.ones_like(encoded_data)
 		output = np.bitwise_and(encoded_data, out_mask)
 		return output
+	
+	@dispatch(str)
+	def stegoVideo(self, file_path):
+		file_name = self.video_path
+		try:
+			open(file_name)
+		except IOError:
+			print("Video not found...")
+			return
+		print("Extracting video...")
+		frame_extract(file_name)
+		
+		print("Extracting audio...")
+		call(["ffmpeg", "-i", file_name, "-q:a", "0", "-map", "a", "lib/temp/audio.mp3", "-y"],stdout=open(os.devnull, "w"), stderr=STDOUT)
+		
+		print("Encrypting & appending data into frame(s)...")
+		b = encode_frame("lib/temp", file_path)
+		os.remove(file_path)
+		if b == -1:
+			print("Not secured, video file too small to put all data into it..")
+			return
+		
+		print("Merging frames...")
+		call(["ffmpeg", "-i", "lib/temp/%d.png" , "-vcodec", "png", "lib/temp/video.mov", "-y"],stdout=open(os.devnull, "w"), stderr=STDOUT)
+		
+		print("Merging audio...")
+		call(["ffmpeg", "-i", "lib/temp/video.mov", "-i", "lib/temp/audio.mp3", "-codec", "copy","lib/output/secured.mov", "-y"],stdout=open(os.devnull, "w"), stderr=STDOUT)
+		
+		print("File fully secured!!!")
+		print("Output available at: lib/output/secured.mov")
+	
+	
+	@dispatch(str, str)	
+	def stegoVideo(self, f, coverVideo):
+		self.video_path = coverVideo
+		self.videoStego(f)
+		
+	
+	def unStegoVideo(self, stegoVideoFile, outputFile):
+		file_name = stegoVideoFile
+
+		
+		try:
+			open(file_name)
+		except IOError:
+			print("Video not found...")
+			return
+		
+		print("Extracting video...")
+		frame_extract(file_name)
+		
+		print("Decrypting Frame(s)...")
+		decode_frame("lib/temp", outputFile)
+		

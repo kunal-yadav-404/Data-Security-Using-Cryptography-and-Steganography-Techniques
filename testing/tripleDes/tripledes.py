@@ -1,6 +1,6 @@
 import sys
+from pyDes import *
 
-# _pythonMajorVersion is used to handle Python2 and Python3 differences.
 _pythonMajorVersion = sys.version_info[0]
 
 # Modes of crypting / cyphering
@@ -13,7 +13,7 @@ PAD_PKCS5 = 2
 
 
 class _baseDes(object):
-	def __init__(self, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+	def __init__(self, mode=ECB, IV=None, pad=None, padmode=PAD_PKCS5):
 		if IV:
 			IV = self._guardAgainstUnicode(IV)
 		if pad:
@@ -153,17 +153,6 @@ class _baseDes(object):
 
 
 
-
-
-
-
-
-
-
-
-
-# TripleDES
-
 class triple_des(_baseDes):
 	"""Triple DES encryption/decrytpion class
 	This algorithm uses the DES-EDE3 (when a 24 byte key is supplied) or
@@ -182,7 +171,7 @@ class triple_des(_baseDes):
 		PAD_PKCS5) to use during all encrypt/decrpt operations done
 		with this instance.
 	"""
-	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_PKCS5):
 		_baseDes.__init__(self, mode, IV, pad, padmode)
 		self.setKey(key)
 

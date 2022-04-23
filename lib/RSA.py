@@ -14,6 +14,8 @@ class Rsa:
 		with open('lib/output/public.pem', 'wb') as file:
 			file.write(public_key_pem)  
 		with open('lib/output/private.pem', 'wb') as file:
-			file.write(private_key_pem)  
+			file.write(private_key_pem)
 		
+		print("Public key available at: lib/output/public.pem")
+		print("Private key available at: lib/output/private.pem")
 		
